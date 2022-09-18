@@ -172,7 +172,7 @@ class Trainer:
                     val_score_history['bleu4'].append(cal_scores(all_val_trg, all_val_output, 'bleu', 4))
                     val_score_history['nist2'].append(cal_scores(all_val_trg, all_val_output, 'nist', 2))
                     val_score_history['nist4'].append(cal_scores(all_val_trg, all_val_output, 'nist', 4))
-                    val_score_history['topk_acc'].append(total_acc)
+                    val_score_history['topk_acc'].append(epoch_acc)
                     print('bleu2: {}, bleu4: {}, nist2: {}, nist4: {}'.format(val_score_history['bleu2'][-1], val_score_history['bleu4'][-1], val_score_history['nist2'][-1], val_score_history['nist4'][-1]))
                     
                     # save best model
