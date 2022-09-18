@@ -10,7 +10,7 @@ Flickr8k의 데이터를 바탕으로 image captioning 모델을 훈련합니다
 <br><br><br>
 
 ## 모델 종류
-* Image Encoder: ResNet
+* Image Encoder: ResNet-101
 * Caption Decoder: LSTM
 * Attention: Soft Attention (Bahdanau Attention)
 <br><br><br>
