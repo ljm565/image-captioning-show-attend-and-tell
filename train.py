@@ -8,11 +8,11 @@ import copy
 import pickle
 import numpy as np
 import time
+import sys
 
 from config import Config
 from utils_func import *
 from utils_data import DLoader
-import matplotlib.pyplot as plt
 from model import Encoder, Decoder
 
 
@@ -251,7 +251,7 @@ class Trainer:
     def inference(self, result_num, model_name):
         if result_num > len(self.dataloaders['test'].dataset):
             print('The number of results that you want to see are larger than total test set')
-            raise AssertionError
+            sys.exit()
         
         # statistics of IMDb test set
         phase = 'test'
