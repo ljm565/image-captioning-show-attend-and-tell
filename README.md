@@ -105,6 +105,7 @@ Flickr8k의 데이터를 바탕으로 image captioning 모델을 훈련합니다
 
 
     * 캡션 생성 샘플(더 많은 결과는 result 폴더 참고)<br>
+        Inference로 확인한 결과입니다.
         * Sample 1
         <img src="result/image_captioning_model/result_3.jpg" width="100%"><br>
         <img src="result/image_captioning_model/result_attn_3.jpg" width="100%"><br>
