@@ -299,6 +299,7 @@ class Trainer:
 
         # calculate loss and ppl
         total_loss = total_loss / len(self.dataloaders[phase].dataset)
+        print('Inference Score')
         print('loss: {}, ppl: {}'.format(total_loss, np.exp(total_loss)))
 
         # calculate scores
@@ -307,6 +308,7 @@ class Trainer:
         bleu4 = cal_scores(all_val_trg_l, all_val_output_l, 'bleu', 4)
         nist2 = cal_scores(all_val_trg_l, all_val_output_l, 'nist', 2)
         nist4 = cal_scores(all_val_trg_l, all_val_output_l, 'nist', 4)
+        print('\nInference Score')
         print('bleu2: {}, bleu4: {}, nist2: {}, nist4: {}\n\n'.format(bleu2, bleu4, nist2, nist4))
 
         # show results examples
