@@ -83,6 +83,8 @@ Flickr8k의 데이터를 바탕으로 image captioning 모델을 훈련합니다
 
 ## 결과
 * ### Image Captioning 모델 훈련 결과
+    아래 그래프와 표기된 결과는 teacher forcing으로 확인한 결과입니다.
+    Inference 방식으로 계산된 loss 및 score를 보고싶다면 inference mode로 실행 시 자동 계산 되므로 확인할 수 있습니다.
     * Loss History<br>
         <img src="images/img1.png" width="80%"><br><br>
 
