@@ -72,7 +72,7 @@ class Trainer:
         self.decoder = Decoder(self.config, self.tokenizer).to(self.device)
         self.criterion = nn.CrossEntropyLoss(ignore_index=self.tokenizer.pad_token_id)
         if self.mode == 'train':
-            self.enc_optimizer = optim.Adam(self.encoder.parameters(), lr=self.enc_lr)
+            self.enc_optimizer = optim.Adam(params=filter(lambda p: p.requires_grad, self.encoder.parameters()), lr=self.enc_lr)
             self.dec_optimizer = optim.Adam(self.decoder.parameters(), lr=self.dec_lr)
             if self.continuous:
                 self.check_point = torch.load(self.model_path, map_location=self.device)
