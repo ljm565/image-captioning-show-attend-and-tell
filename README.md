@@ -58,7 +58,7 @@ Flickr8k의 데이터를 바탕으로 image captioning 모델을 훈련합니다
     <br><br>
 
 * ### 모델 학습 조건 설정 (config.json)
-    * **주의사항: 최초 학습 시 config.json이 사용되며, 이미 한 번 학습을 한 모델에 대하여 parameter를 바꾸고싶다면 base_path/model/{model_name}/{model_name}.json 파일을 수정해야 합니다.**
+    **주의사항: 최초 학습 시 config.json이 사용되며, 이미 한 번 학습을 한 모델에 대하여 parameter를 바꾸고싶다면 base_path/model/{model_name}/{model_name}.json 파일을 수정해야 합니다.**
     * is_attn: {0, 1} 중 선택. Attention 모델을 제작한다면 1, 아니면 0. 
     * base_path: 학습 관련 파일이 저장될 위치.
     * model_name: 학습 모델이 저장될 파일 이름 설정. 모델은 base_path/model/{model_name}/{model_name}.pt 로 저장.
