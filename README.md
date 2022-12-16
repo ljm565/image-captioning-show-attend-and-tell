@@ -23,6 +23,11 @@ Flickr8k의 데이터를 바탕으로 image captioning 모델을 훈련합니다
 
 ## 사용 데이터
 * [Flickr8k](https://www.kaggle.com/datasets/adityajn105/flickr8k)
+    <br>여기서 나와있는 data_sample은 전체 데이터가 아닌 일부 sample 데이터입니다. 전체 데이터는 위 링크에서 받을 수 있습니다.
+    만약 코드가 돌아가는지 확인하기 위해서는 아래 명령어를 먼저 실행해서 데이터 폴더 이름을 변경해야합니다.
+    ```
+    mv data_sample data
+    ```
 <br><br><br>
 
 
