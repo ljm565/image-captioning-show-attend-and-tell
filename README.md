@@ -82,7 +82,7 @@ Flickr8k의 데이터를 바탕으로 image captioning 모델을 훈련합니다
     * regularization_lambda: Regularization loss term 계수 지정.
     * result_num: 모델 inference 시, 결과를 보여주는 sample 개수.
     * topk: 모델 학습 시, Top-k accuracy 결과를 보여줄 k 값.
-    * early_stop_criterion: Test set의 최소 loss를 내어준 학습 epoch 대비, 설정된 숫자만큼 epoch이 지나도 나아지지 않을 경우 학습 조기 종료.
+    * early_stop_criterion: Validation set의 최대 BLEU-4를 내어준 학습 epoch 대비, 설정된 숫자만큼 epoch이 지나도 나아지지 않을 경우 학습 조기 종료.
     <br><br><br>
 
 
