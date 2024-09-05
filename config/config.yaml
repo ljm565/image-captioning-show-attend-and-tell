@@ -1,0 +1,47 @@
+# base
+seed: 0
+deterministic: True
+
+# environment config
+device: cpu     # examples: [0], [0,1], [1,2,3], cpu, mps... 
+
+# project config
+project: outputs/image_captioning
+name: coco
+
+# model config
+img_size: 256
+enc_hidden_dim: 14
+dec_hidden_dim: 512
+dec_num_layers: 1
+max_len: 64
+dropout: 0.1
+vocab_size: 10000
+
+# data config
+workers: 0                      # Don't worry to set worker. The number of workers will be set automatically according to the batch size.
+coco_train: True                # If True, coco data will be loaded automatically.
+coco_dataset:
+    path: data/
+CUSTOM:
+    train_data_path: null
+    validation_data_path: null
+    test_data_path: null
+
+# train config
+batch_size: 32
+steps: 30000
+warmup_steps: 200
+enc_lr0: 1e-4
+enc_lrf: 0.1                          # enc_last_lr = enc_lr0 * enc_lrf
+dec_lr0: 4e-4
+dec_lrf: 0.1                          # dec_last_lr = dec_lr0 * dec_lrf
+scheduler_type: 'cosine'              # ['linear', 'cosine']
+regularization_lambda: 1
+patience: 10                           # Early stopping epochs.
+topk: 5
+prediction_print_n: 10                # Number of examples to show during inference.
+
+# logging config
+common: ['train_loss', 'validation_loss', 'lr']
+metrics: ['ppl', 'bleu2', 'bleu4', 'nist2', 'nist4']   # You can add more metrics after implements metric validation codes
