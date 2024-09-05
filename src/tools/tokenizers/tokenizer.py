@@ -1,15 +1,16 @@
-from collections import Counter
 from tqdm import tqdm
+from collections import Counter
 
 
-class Tokenizer:
+
+class CustomTokenizer:
     def __init__(self, config, all_pairs, trainset_id):
         self.all_pairs, self.trainset_id = all_pairs, trainset_id
         self.vocab_size = config.vocab_size
-        self.pad_token, self.sos_token, self.eos_token, self.unk_token = '[PAD]', '[SOS]', '[EOS]', '[UNK]'
-        self.pad_token_id, self.sos_token_id, self.eos_token_id, self.unk_token_id = 0, 1, 2, 3
-        self.word2idx = {self.pad_token: self.pad_token_id, self.sos_token: self.sos_token_id, self.eos_token: self.eos_token_id, self.unk_token: self.unk_token_id}
-        self.idx2word = {self.pad_token_id: self.pad_token, self.sos_token_id: self.sos_token, self.eos_token_id: self.eos_token, self.unk_token_id: self.unk_token}
+        self.pad_token, self.bos_token, self.eos_token, self.unk_token = '[PAD]', '[BOS]', '[EOS]', '[UNK]'
+        self.pad_token_id, self.bos_token_id, self.eos_token_id, self.unk_token_id = 0, 1, 2, 3
+        self.word2idx = {self.pad_token: self.pad_token_id, self.bos_token: self.bos_token_id, self.eos_token: self.eos_token_id, self.unk_token: self.unk_token_id}
+        self.idx2word = {self.pad_token_id: self.pad_token, self.bos_token_id: self.bos_token, self.eos_token_id: self.eos_token, self.unk_token_id: self.unk_token}
 
         # count the word frequency
         self.train_caption = [all_pairs[id][1] for id in self.trainset_id]

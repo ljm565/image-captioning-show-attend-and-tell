@@ -72,26 +72,6 @@ def tensor2list(ref, pred, tokenizer):
     return ref, pred
 
 
-def collect_all_pairs(caption_file):
-    captions = pd.read_csv(caption_file)
-    all_pairs = [[img, preprocessing(cap.lower())] for img, cap in zip(captions['image'], captions['caption'])]
-    return all_pairs
-    
-
-def make_dataset_ids(total_l, valset_l):
-    random.seed(999)
-    all_id = list(range(total_l))
-    trainset_id = random.sample(all_id, total_l - valset_l)
-    valset_id = list(set(all_id) - set(trainset_id))
-    return trainset_id, valset_id
-
-
-def preprocessing(s):
-    s = re.sub('[#$%&()*+\-/:;<=>@\[\]^_`{|}~\'".,?!]', '', s).lower()
-    s = ' '.join(s.split())
-    return s
-
-
 def topk_accuracy(pred, target, k, eos_token_id):
     pred, target = pred.detach().cpu(), target.detach().cpu()
 
