@@ -17,7 +17,8 @@ class ModelManager:
 
 
     def save(self, model, model_path, log_data):
-        checkpoint = {'model': model.state_dict(), 'log_data': log_data}
+        model_state_dict = {k: v.state_dict() for k, v in model.items()}
+        checkpoint = {'model': model_state_dict, 'log_data': log_data}
         torch.save(checkpoint, model_path)
 
 

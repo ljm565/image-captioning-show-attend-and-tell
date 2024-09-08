@@ -40,7 +40,7 @@ class CustomTokenizer:
     def decode(self, tok):
         s = [self.idx2word[t] for t in tok]
         try:
-            s = ' '.join(s[:tok.index(self.eos_token_id)])
+            s = ' '.join(s[:tok.index(self.eos_token_id)+1])
         except ValueError:
             s = ' '.join(s)
         return s

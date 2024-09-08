@@ -1,3 +1,4 @@
+import os
 import random
 import numpy as np
 from PIL import Image
@@ -18,19 +19,20 @@ def seed_worker(worker_id):  # noqa
 class DLoader(Dataset):
     def __init__(self, img_folder, all_pairs, trans, ids, tokenizer, max_len):
         self.data_pairs = [all_pairs[id] for id in ids]
+        self.img_folder = img_folder
         self.trans = trans
         self.ids = ids
         self.tokenizer = tokenizer
         self.max_len = max_len
-        self.data = [[self.trans(Image.open(img_folder+img_name)), cap] for img_name, cap in tqdm(self.data_pairs, desc='load data')]
-        self.length = len(self.data)
+        self.length = len(self.data_pairs)
 
 
     def __getitem__(self, idx):
-        image, caption = self.data[idx][0], self.data[idx][1]
+        img_name, caption = self.data_pairs[idx]
+        image = self.trans(Image.open(os.path.join(self.img_folder, img_name)))
         caption = [self.tokenizer.bos_token_id] + self.tokenizer.encode(caption)[:self.max_len-2] + [self.tokenizer.eos_token_id]
         caption = caption + [self.tokenizer.pad_token_id] * (self.max_len - len(caption))
-        return image, torch.LongTensor(caption), self.ids[idx]
+        return image, torch.tensor(caption, dtype=torch.long), self.ids[idx]
 
 
     def __len__(self):

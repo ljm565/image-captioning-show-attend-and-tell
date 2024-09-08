@@ -7,7 +7,6 @@ sys.path.append(os.path.dirname(os.path.abspath(os.path.dirname(__file__))))
 import torch
 
 from trainer import Trainer
-from utils import LOGGER, colorstr
 from utils.training_utils import choose_proper_resume_model
 
 
@@ -36,11 +35,10 @@ def main(args):
     
 def validation(args, config):
     if config.device == 'mps':
-        LOGGER.warning(colorstr('yellow', 'cpu is automatically selected because mps leads inaccurate validation.'))
-        device = torch.device('cpu')
+        device = torch.device('mps:0')
     else:
         device = torch.device('cpu') if config.device == 'cpu' else torch.device(f'cuda:{config.device[0]}')
-
+        
     trainer = Trainer(
         config, 
         'validation', 
@@ -48,18 +46,19 @@ def validation(args, config):
         resume_path=choose_proper_resume_model(args.resume_model_dir, args.load_model_type) if args.resume_model_dir else None
     )
 
-    trainer.epoch_validate(args.dataset_type, 0, False)
+    trainer.vis_attention(args.dataset_type, args.result_num)
 
 
 
 
 if __name__ == '__main__':
     parser = ArgumentParser()
-    parser.add_argument('-r', '--resume_model_dir', type=str, required=True)
-    parser.add_argument('-l', '--load_model_type', type=str, default='metric', required=False, choices=['loss', 'last', 'metric'])
+    parser.add_argument('-r', '--resume_model_dir', type=str, required=False)
+    parser.add_argument('-l', '--load_model_type', type=str, default='metric', required=False, choices=['metric', 'loss', 'last'])
     parser.add_argument('-d', '--dataset_type', type=str, default='validation', required=False, choices=['train', 'validation', 'test'])
+    parser.add_argument('-n', '--result_num', type=int, default=10)
     args = parser.parse_args()
-
+    
     main(args)
 
     

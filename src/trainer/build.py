@@ -19,7 +19,6 @@ PIN_MEMORY = str(os.getenv('PIN_MEMORY', True)).lower() == 'true'  # global pin_
 def get_tokenizers(config, preparation):
     if config.coco_train:
         tokenizer = CustomTokenizer(config, preparation['all_pairs'], preparation['train_id'])
-        config.vocab_size = tokenizer.vocab_size
     else:
         LOGGER.warning(colorstr('yellow', 'You must implement your custom tokenizer loading codes..'))
         raise NotImplementedError
@@ -43,8 +42,9 @@ def build_dataset(config, tokenizer, modes, preparation):
                                 
         img_folder = os.path.join(config.coco_dataset.path, 'images')
         all_pairs = preparation['all_pairs']
+        config.img_folder = img_folder
         
-        dataset_dict = {mode: DLoader(img_folder, all_pairs, trans, preparation[f'{mode}_id'], tokenizer, config.max_len) for mode in modes}
+        dataset_dict = {mode: DLoader(img_folder, all_pairs, trans, preparation[f'{mode}_id'], tokenizer, config.max_len) for mode in modes if f'{mode}_id' in preparation}
     else:
         LOGGER.warning(colorstr('yellow', 'You have to implement data pre-processing code..'))
         # dataset_dict = {mode: CustomDLoader(config.CUSTOM.get(f'{mode}_data_path')) for mode in modes}
@@ -76,6 +76,6 @@ def get_data_loader(config, tokenizer, modes, preparation, is_ddp=False):
                                        config.batch_size, 
                                        config.workers, 
                                        shuffle=(m == 'train'), 
-                                       is_ddp=is_ddp) for m in modes}
+                                       is_ddp=is_ddp) for m in modes if m in datasets}
 
     return dataloaders

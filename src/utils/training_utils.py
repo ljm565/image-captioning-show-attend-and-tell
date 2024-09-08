@@ -30,9 +30,8 @@ def choose_proper_resume_model(resume_dir, type):
         raise IndexError(f"There's no model path in {weights_dir} of type {type}")
     
 
-def draw_training_lr_curve(config, func, all_steps_n, warmup_steps_n, is_ddp, world_size):
+def draw_training_lr_curve(config, func, lr0, all_steps_n, warmup_steps_n, is_ddp, world_size, file_name=None):
     save_dir = os.path.join(config.save_dir, 'vis_outputs')
-    lr0 = config.lr0
     
     os.makedirs(save_dir, exist_ok=True)
     lrs = [func(i)*lr0 if i > warmup_steps_n
@@ -47,7 +46,10 @@ def draw_training_lr_curve(config, func, all_steps_n, warmup_steps_n, is_ddp, wo
         plt.title('Learning Rate Schedule')
     plt.grid()
     plt.tight_layout()
-    plt.savefig(os.path.join(save_dir, 'lr_schedule.png'))
+    if not file_name:
+        plt.savefig(os.path.join(save_dir, 'lr_schedule.png'))
+    else:
+        plt.savefig(os.path.join(save_dir, file_name))
 
 
 def lr_warmup(cur_step, warmup_steps_n, lr0, func):

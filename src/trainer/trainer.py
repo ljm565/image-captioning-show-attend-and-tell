@@ -1,4 +1,5 @@
 import gc
+import sys
 import time
 import math
 import random
@@ -7,6 +8,7 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 from torch import distributed as dist
+import torchvision.transforms as transforms
 
 from tools.tokenizers import *
 from tools import TrainingLogger, Evaluator, EarlyStopper
@@ -54,9 +56,9 @@ class Trainer:
 
         # init tokenizer, model, dataset, dataloader, etc.
         self.modes = ['train', 'validation'] if self.is_training_mode else ['train', 'validation', 'test']
-        preparation = prepare_necessary(config)
-        self.tokenizer = get_tokenizers(self.config, preparation)
-        self.dataloaders = get_data_loader(self.config, self.tokenizer, self.modes, preparation, self.is_ddp)
+        self.preparation = prepare_necessary(config)
+        self.tokenizer = get_tokenizers(self.config, self.preparation)
+        self.dataloaders = get_data_loader(self.config, self.tokenizer, self.modes, self.preparation, self.is_ddp)
         self.encoder, self.decoder = self._init_model(self.config, self.tokenizer, self.mode)
         self.training_logger = TrainingLogger(self.config, self.is_training_mode)
         self.evaluator = Evaluator(self.tokenizer)
@@ -90,7 +92,8 @@ class Trainer:
             self.enc_scheduler = optim.lr_scheduler.LambdaLR(self.enc_optimizer, lr_lambda=self.enc_lf)
             self.dec_scheduler = optim.lr_scheduler.LambdaLR(self.dec_optimizer, lr_lambda=self.dec_lf)
             if self.is_rank_zero:
-                draw_training_lr_curve(self.config, self.lf, self.steps, self.warmup_steps_n, self.is_ddp, self.world_size)
+                draw_training_lr_curve(self.config, self.enc_lf, self.config.enc_lr0, self.steps, self.warmup_steps_n, self.is_ddp, self.world_size, 'enc_lr_schedule')
+                draw_training_lr_curve(self.config, self.dec_lf, self.config.dec_lr0, self.steps, self.warmup_steps_n, self.is_ddp, self.world_size, 'dec_lr_schedule')
 
 
     def _init_model(self, config, tokenizer, mode):
@@ -184,7 +187,8 @@ class Trainer:
             phase: str,
             epoch: int
         ):
-        self.model.train()
+        self.encoder.train()
+        self.decoder.train()
         train_loader = self.dataloaders[phase]
         nb = len(train_loader)
 
@@ -193,44 +197,56 @@ class Trainer:
 
         # init progress bar
         if RANK in (-1, 0):
-            logging_header = ['CE Loss', 'lr']
+            logging_header = ['CE Loss', 'enc lr', 'dec lr', f'top-{self.config.topk} acc']
             pbar = init_progress_bar(train_loader, self.is_rank_zero, logging_header, nb)
 
-        for i, (x, y, _, _) in pbar:
+        for i, (img, cap, _) in pbar:
             # Warmup
             self.train_cur_step += 1
             if self.train_cur_step <= self.warmup_steps_n:
-                self.optimizer.param_groups[0]['lr'] = lr_warmup(self.train_cur_step, self.warmup_steps_n, self.lr0, self.lf)
-            cur_lr = self.optimizer.param_groups[0]['lr']
+                self.enc_optimizer.param_groups[0]['lr'] = lr_warmup(self.train_cur_step, self.warmup_steps_n, self.enc_lr0, self.enc_lf)
+                self.dec_optimizer.param_groups[0]['lr'] = lr_warmup(self.train_cur_step, self.warmup_steps_n, self.dec_lr0, self.dec_lf)
+            enc_cur_lr = self.enc_optimizer.param_groups[0]['lr']
+            dec_cur_lr = self.dec_optimizer.param_groups[0]['lr']
             
-            batch_size = x.size(0)
-            x, y = x.to(self.device), y.to(self.device)
+            batch_size = img.size(0)
+            img, cap = img.to(self.device), cap.to(self.device)
+            self.enc_optimizer.zero_grad()
+            self.dec_optimizer.zero_grad()
             
-            self.optimizer.zero_grad()
-            output = self.model(x)
-            
-            # masked label training
-            if self.train_cur_step / self.steps >= self.config.train_user_turn_mask_step:
-                loss = self.criterion(output[:, :-1, :].reshape(-1, output.size(-1)), y[:, 1:].reshape(-1))
-            else:
-                loss = self.criterion(output[:, :-1, :].reshape(-1, output.size(-1)), x[:, 1:].reshape(-1))
-            
-            loss.backward()
-            self.optimizer.step()
-            self.scheduler.step()
+            enc_output, hidden = self.encoder(img)
+            decoder_all_output, decoder_all_score = [], []
+            for j in range(self.max_len):
+                trg_word = cap[:, j].unsqueeze(1)
+                dec_output, hidden, score = self.decoder(trg_word, hidden, enc_output)
+                decoder_all_output.append(dec_output)
+                if self.config.using_attention:
+                    decoder_all_score.append(score)
 
+            decoder_all_output = torch.cat(decoder_all_output, dim=1)
+
+            loss = self.criterion(decoder_all_output[:, :-1, :].reshape(-1, decoder_all_output.size(-1)), cap[:, 1:].reshape(-1))
+            if self.config.using_attention:
+                decoder_all_score = torch.cat(decoder_all_score, dim=2)
+                loss += self.config.regularization_lambda * ((1. - torch.sum(decoder_all_score, dim=2)) ** 2).mean()
+            acc = topk_accuracy(decoder_all_output[:, :-1, :], cap[:, 1:], self.config.topk, self.tokenizer.eos_token_id)
+
+            loss.backward()
+            self.enc_optimizer.step()
+            self.dec_optimizer.step()
+            
             if self.is_rank_zero:
                 self.training_logger.update(
                     phase, 
                     epoch + 1,
                     self.train_cur_step,
                     batch_size, 
-                    **{'train_loss': loss.item(), 'lr': cur_lr},
+                    **{'train_loss': loss.item(), 'enc_lr': enc_cur_lr, 'dec_lr': dec_cur_lr, 'topk_acc': acc},
                 )
-                loss_log = [loss.item(), cur_lr]
+                loss_log = [loss.item(), enc_cur_lr, dec_cur_lr, acc]
                 msg = tuple([f'{epoch + 1}/{self.epochs}'] + loss_log)
                 pbar.set_description(('%15s' * 1 + '%15.4g' * len(loss_log)) % msg)
-            
+
         # upadate logs
         if self.is_rank_zero:
             self.training_logger.update_phase_end(phase, printing=True)
@@ -243,7 +259,7 @@ class Trainer:
             is_training_now=True
         ):
         def _init_log_data_for_vis():
-            data4vis = {'trg': [], 'pred': []}
+            data4vis = {'id': [], 'trg': [], 'pred': [], 'score': []}
             return data4vis
 
         def _append_data_for_vis(**kwargs):
@@ -263,24 +279,34 @@ class Trainer:
                 logging_header = ['CE Loss'] + self.config.metrics
                 pbar = init_progress_bar(val_loader, self.is_rank_zero, logging_header, nb)
 
-                self.model.eval()
+                self.encoder.eval()
+                self.decoder.eval()
 
-                for i, (x, y, fs, fsl) in pbar:
-                    batch_size = x.size(0)
-                    x, y, fs = x.to(self.device), y.to(self.device), fs.to(self.device)
+                for i, (img, cap, img_id) in pbar:
+                    batch_size = img.size(0)
+                    img, cap = img.to(self.device), cap.to(self.device)
+                    
+                    enc_output, hidden = self.encoder(img)
+                    decoder_all_output, decoder_all_score = [], []
+                    for j in range(self.max_len):
+                        trg_word = cap[:, j].unsqueeze(1)
+                        dec_output, hidden, score = self.decoder(trg_word, hidden, enc_output)
+                        decoder_all_output.append(dec_output)
+                        if self.config.using_attention:
+                            decoder_all_score.append(score)
 
-                    targets4metrics = [self.tokenizer.decode(t.tolist()) for t in x]
+                    decoder_all_output = torch.cat(decoder_all_output, dim=1)
 
-                    predictions, loss = self.model.batch_inference(
-                        src=x,
-                        start_tokens=(fs, fsl),
-                        max_len=self.max_len,
-                        tokenizer=self.tokenizer,
-                        loss_func=self.criterion,
-                        target=y
-                    )
-                
-                    metric_results = self.metric_evaluation(loss, predictions, targets4metrics)
+                    loss = self.criterion(decoder_all_output[:, :-1, :].reshape(-1, decoder_all_output.size(-1)), cap[:, 1:].reshape(-1))
+                    if self.config.using_attention:
+                        decoder_all_score = torch.cat(decoder_all_score, dim=2)
+                        loss += self.config.regularization_lambda * ((1. - torch.sum(decoder_all_score, dim=2)) ** 2).mean()
+                    acc = topk_accuracy(decoder_all_output[:, :-1, :], cap[:, 1:], self.config.topk, self.tokenizer.eos_token_id)
+
+                    targets4metrics = [self.tokenizer.decode(c.tolist()) for c in cap]
+                    predictions = [self.tokenizer.decode([self.tokenizer.bos_token_id] + torch.argmax(pred, dim=1).tolist()) for pred in decoder_all_output]
+                    metric_results = self.metric_evaluation(loss, acc, predictions, targets4metrics)
+                    metric_results['topk_acc'] = acc
 
                     self.training_logger.update(
                         phase, 
@@ -303,21 +329,27 @@ class Trainer:
                     if not is_training_now:
                         _append_data_for_vis(
                             **{'trg': targets4metrics,
-                               'pred': predictions}
+                               'pred': predictions,
+                               'score': decoder_all_score.detach().cpu() if self.config.using_attention else None,
+                               'id': img_id.tolist()}
                         )
 
                 # upadate logs and save model
                 self.training_logger.update_phase_end(phase, printing=True)
                 if is_training_now:
-                    self.training_logger.save_model(self.wdir, self.model)
+                    self.training_logger.save_model(self.wdir, {'encoder': self.encoder, 'decoder': self.decoder})
                     self.training_logger.save_logs(self.save_dir)
 
                     high_fitness = self.training_logger.model_manager.best_higher
                     low_fitness = self.training_logger.model_manager.best_lower
                     self.stop = self.stopper(epoch + 1, high=high_fitness, low=low_fitness)
 
+        # for attention visualization
+        if not is_training_now and self.config.using_attention:
+            self.data4vis['score'] = torch.cat(self.data4vis['score'], dim=0)
+
     
-    def metric_evaluation(self, loss, response_pred, response_gt):
+    def metric_evaluation(self, loss, acc, response_pred, response_gt):
         metric_results = {k: 0 for k in self.metrics}
         for m in self.metrics:
             if m == 'ppl':
@@ -330,49 +362,48 @@ class Trainer:
                 metric_results[m] = self.evaluator.cal_nist_score(response_pred, response_gt, n=2)
             elif m == 'nist4':
                 metric_results[m] = self.evaluator.cal_nist_score(response_pred, response_gt, n=4)
+            elif m == 'topk_acc':
+                continue
             else:
                 LOGGER.warning(f'{colorstr("red", "Invalid key")}: {m}')
         
         return metric_results
     
     
-    def chatting(self, query: str, is_first_query=False):
-        def _preprocess(query, is_first_query, query_cache=None):
-            if is_first_query:
-                query = [self.tokenizer.cls_token_id] + self.tokenizer.encode(query) + [self.tokenizer.sep_token_id]
-                query_cache = torch.tensor(query, dtype=torch.long).unsqueeze(0).to(self.device)
-            else:
-                query = self.tokenizer.encode(query) + [self.tokenizer.sep_token_id]
-                query_cache = torch.cat([query_cache, torch.tensor(query, dtype=torch.long).unsqueeze(0).to(self.device)], dim=1)
-            return query_cache
-            
-        self.query_cache = None if is_first_query else self.query_cache
-        self.query_cache = _preprocess(query, is_first_query, self.query_cache)
-        query_done = False
-        is_first_query = False
-
-        answer = []
-        while 1:
-            output = self.model(self.query_cache)
-            pred_token = torch.argmax(output[:, -1], dim=-1)
-            answer.append(pred_token.item())
-            self.query_cache = torch.cat((self.query_cache, pred_token.unsqueeze(1)), dim=1)
-
-            if pred_token == self.tokenizer.sep_token_id:
-                answer.pop()
-                break
-            elif pred_token == self.tokenizer.eos_token_id:
-                answer.pop()
-                query_done = True
-                break
-            
-            if self.query_cache.size(1) >= self.max_len:
-                query_done = True
-                break
-            
-            if query_done:
-                self.query_cache = None
-                is_first_query = True
+    def vis_attention(self, phase, result_num):
+        if result_num > len(self.dataloaders[phase].dataset):
+            LOGGER.info(colorstr('red', 'The number of results that you want to see are larger than total test set'))
+            sys.exit()
         
-        answer = self.tokenizer.decode(answer)
-        return self.query_cache, answer, query_done, is_first_query
+        # validation
+        self.epoch_validate(phase, 0, False)
+
+        if self.config.using_attention:
+            vis_save_dir = os.path.join(self.config.save_dir, 'vis_outputs') 
+            os.makedirs(vis_save_dir, exist_ok=True)
+        else:
+            LOGGER.warning(colorstr('yellow', 'Your model does not have attention module..'))
+
+        # show results examples
+        trans4attn = transforms.Compose([transforms.Resize((252, 252)),
+                                         transforms.ToTensor()])
+        random.seed(int(1000*time.time())%(2**32))
+        targets, preds = self.data4vis['trg'], self.data4vis['pred']
+        targets = [' '.join(self.tokenizer.tokenize(s)[1:-1]) for s in targets]
+        ids = random.sample(list(range(len(targets))), result_num)
+        img_id = [os.path.join(self.config.img_folder, self.preparation['all_pairs'][j][0]) for j in [self.data4vis['id'][i] for i in ids]]
+        
+        # preprocessing for visualization
+        targets, preds= [targets[i] for i in ids], [preds[i] for i in ids]
+        preds = [self.tokenizer.tokenize(s)[1:] for s in preds]
+        preds = [tok[:-1] if tok[-1] == self.tokenizer.eos_token else tok for tok in preds]
+        preds = [' '.join(tok) for tok in preds]
+        if self.config.using_attention:
+            pred_l = [len(self.tokenizer.tokenize(tok)) for tok in preds]
+            attn_img = [self.data4vis['score'][i, :, :l] for i, l in zip(ids, pred_l)]
+
+        # save result figures
+        results_save_path = os.path.join(self.config.save_dir, 'vis_outputs', 'vis_attention')
+        save_figures(img_id, targets, preds, results_save_path)
+        if self.config.using_attention:
+            save_attn_figures(img_id, attn_img, preds, results_save_path, trans4attn, self.config.enc_hidden_dim)

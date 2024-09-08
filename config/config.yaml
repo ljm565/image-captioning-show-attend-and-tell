@@ -1,9 +1,9 @@
 # base
-seed: 0
+seed: 999
 deterministic: True
 
 # environment config
-device: cpu     # examples: [0], [0,1], [1,2,3], cpu, mps... 
+device: [0]     # examples: [0], [0,1], [1,2,3], cpu, mps... 
 
 # project config
 project: outputs/image_captioning
@@ -17,6 +17,7 @@ dec_num_layers: 1
 max_len: 64
 dropout: 0.1
 vocab_size: 10000
+using_attention: True
 
 # data config
 workers: 0                      # Don't worry to set worker. The number of workers will be set automatically according to the batch size.
@@ -29,7 +30,7 @@ CUSTOM:
     test_data_path: null
 
 # train config
-batch_size: 32
+batch_size: 50
 steps: 30000
 warmup_steps: 200
 enc_lr0: 1e-4
@@ -43,5 +44,5 @@ topk: 5
 prediction_print_n: 10                # Number of examples to show during inference.
 
 # logging config
-common: ['train_loss', 'validation_loss', 'lr']
-metrics: ['ppl', 'bleu2', 'bleu4', 'nist2', 'nist4']   # You can add more metrics after implements metric validation codes
+common: ['train_loss', 'validation_loss', 'enc_lr', 'dec_lr']
+metrics: ['ppl', 'bleu2', 'bleu4', 'nist2', 'nist4', 'topk_acc']   # You can add more metrics after implements metric validation codes

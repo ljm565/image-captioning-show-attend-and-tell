@@ -7,23 +7,23 @@ from torchvision.models import resnet101
 class ResNetEncoder(nn.Module):
     def __init__(self, config):
         super(ResNetEncoder, self).__init__()
-        self.enc_hidden_size = config.enc_hidden_size
-        self.dec_hidden_size = config.dec_hidden_size
+        self.enc_hidden_dim = config.enc_hidden_dim
+        self.dec_hidden_dim = config.dec_hidden_dim
         self.dec_num_layers = config.dec_num_layers
-        self.pixel_size = self.enc_hidden_size * self.enc_hidden_size
+        self.pixel_size = self.enc_hidden_dim * self.enc_hidden_dim
 
         base_model = resnet101(pretrained=True, progress=False)
         base_model = list(base_model.children())[:-2]
         self.resnet = nn.Sequential(*base_model)  # output size: B x 2048 x H/32 x W/32
-        self.pooling = nn.AdaptiveAvgPool2d((self.enc_hidden_size, self.enc_hidden_size))
+        self.pooling = nn.AdaptiveAvgPool2d((self.enc_hidden_dim, self.enc_hidden_dim))
 
         self.relu = nn.ReLU()
         self.hidden_dim_changer = nn.Sequential(
             nn.Linear(self.pixel_size, self.dec_num_layers),
             nn.ReLU()
         )
-        self.h_mlp = nn.Linear(2048, self.dec_hidden_size)
-        self.c_mlp = nn.Linear(2048, self.dec_hidden_size)
+        self.h_mlp = nn.Linear(2048, self.dec_hidden_dim)
+        self.c_mlp = nn.Linear(2048, self.dec_hidden_dim)
 
         self.fine_tune(True)
 
