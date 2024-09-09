@@ -14,9 +14,9 @@ img_size: 256
 enc_hidden_dim: 14
 dec_hidden_dim: 512
 dec_num_layers: 1
-max_len: 64
+max_len: 64                         # Maximum length setting of captions
 dropout: 0.1
-vocab_size: 10000
+vocab_size: 10000                   # Vocabulary size
 using_attention: True
 
 # data config
@@ -39,8 +39,8 @@ dec_lr0: 4e-4
 dec_lrf: 0.1                          # dec_last_lr = dec_lr0 * dec_lrf
 scheduler_type: 'cosine'              # ['linear', 'cosine']
 regularization_lambda: 1
-patience: 10                           # Early stopping epochs.
-topk: 5
+patience: 10                          # Early stopping epochs.
+topk: 5                               # Logit's top-k accuracy.
 prediction_print_n: 10                # Number of examples to show during inference.
 
 # logging config
