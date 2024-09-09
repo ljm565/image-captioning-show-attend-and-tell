@@ -8,7 +8,6 @@ from torch.utils.data import DataLoader, distributed
 from models import ResNetEncoder, LSTMDecoder
 from tools.tokenizers import CustomTokenizer
 from utils import LOGGER, RANK, colorstr
-from utils.filesys_utils import read_dataset
 from utils.data_utils import DLoader, seed_worker
 from utils.func_utils import *
 

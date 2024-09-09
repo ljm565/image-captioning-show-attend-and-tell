@@ -2,7 +2,6 @@ import os
 import random
 import numpy as np
 from PIL import Image
-from tqdm import tqdm
 
 import torch
 from torch.utils.data import Dataset
