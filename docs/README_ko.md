@@ -85,12 +85,11 @@ python3 src/run/train.py --config config/config.yaml --mode train
 ## Tutorials & Documentations
 이미지 캡셔닝 모델 학습을 위해서 다음 과정을 따라주시기 바랍니다.
 1. [Getting Started](./1_getting_started_ko.md)
-2. [Data Preparation](./docs/2_data_preparation.md)
-3. [Training](./docs/3_trainig.md)
+2. [Data Preparation](./2_data_preparation_ko.md)
+3. [Training](./3_trainig_ko.md)
 4. ETC
-   * [Evaluation](./docs/4_model_evaluation.md)
-   * [Attention Visualization](./docs/5_vis_attn.md)
-   * [Print Sentiment Prediction Results](./docs/6_pred_sentiment.md)
+   * [Evaluation](./4_model_evaluation_ko.md)
+   * [Attention Visualization](./5_vis_attn_ko.md)
 
 <br><br><br>
 

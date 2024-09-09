@@ -85,14 +85,13 @@ This repository is structured as follows.
 
 
 ## Tutorials & Documentations
-Please follow the steps below to train a image captioning model.
+Please follow the steps below to train an image captioning model.
 1. [Getting Started](./docs/1_getting_started.md)
 2. [Data Preparation](./docs/2_data_preparation.md)
 3. [Training](./docs/3_trainig.md)
 4. ETC
    * [Evaluation](./docs/4_model_evaluation.md)
    * [Attention Visualization](./docs/5_vis_attn.md)
-   * [Print Sentiment Prediction Results](./docs/6_pred_sentiment.md)
 
 <br><br><br>
 
