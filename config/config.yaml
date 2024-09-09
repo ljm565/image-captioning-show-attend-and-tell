@@ -7,7 +7,7 @@ device: [0]     # examples: [0], [0,1], [1,2,3], cpu, mps...
 
 # project config
 project: outputs/image_captioning
-name: coco
+name: flickr8k
 
 # model config
 img_size: 256
@@ -21,8 +21,8 @@ using_attention: True
 
 # data config
 workers: 0                      # Don't worry to set worker. The number of workers will be set automatically according to the batch size.
-coco_train: True                # If True, coco data will be loaded automatically.
-coco_dataset:
+flickr8k_train: True                # If True, flickr8k data will be loaded automatically.
+flickr8k_dataset:
     path: data/
 CUSTOM:
     train_data_path: null

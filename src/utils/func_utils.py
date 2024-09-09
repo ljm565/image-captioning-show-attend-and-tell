@@ -40,8 +40,8 @@ def preprocessing(s):
 
 
 def prepare_necessary(config):
-    if config.coco_dataset:
-        caption_file = os.path.join(config.coco_dataset.path, 'captions.txt')
+    if config.flickr8k_dataset:
+        caption_file = os.path.join(config.flickr8k_dataset.path, 'captions.txt')
         all_pairs = collect_all_pairs(caption_file)
         train_id, validation_id = make_dataset_ids(len(all_pairs), 1000)     # This ID is only used in the training dataset to create the tokenizer vocabulary
         return {'all_pairs': all_pairs, 'train_id': train_id, 'validation_id': validation_id}

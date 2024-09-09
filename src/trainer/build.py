@@ -17,7 +17,7 @@ PIN_MEMORY = str(os.getenv('PIN_MEMORY', True)).lower() == 'true'  # global pin_
 
 
 def get_tokenizers(config, preparation):
-    if config.coco_train:
+    if config.flickr8k_train:
         tokenizer = CustomTokenizer(config, preparation['all_pairs'], preparation['train_id'])
     else:
         LOGGER.warning(colorstr('yellow', 'You must implement your custom tokenizer loading codes..'))
@@ -32,7 +32,7 @@ def get_model(config, tokenizer, device):
 
 
 def build_dataset(config, tokenizer, modes, preparation):
-    if config.coco_train:
+    if config.flickr8k_train:
         # for the image preprocessing
         mean = [0.485, 0.456, 0.406]
         std = [0.229, 0.224, 0.225]
@@ -40,7 +40,7 @@ def build_dataset(config, tokenizer, modes, preparation):
                                     transforms.ToTensor(),
                                     transforms.Normalize(mean, std)])
                                 
-        img_folder = os.path.join(config.coco_dataset.path, 'images')
+        img_folder = os.path.join(config.flickr8k_dataset.path, 'images')
         all_pairs = preparation['all_pairs']
         config.img_folder = img_folder
         
