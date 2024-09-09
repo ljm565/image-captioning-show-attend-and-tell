@@ -20,8 +20,8 @@ vocab_size: 10000
 using_attention: True
 
 # data config
-workers: 0                      # Don't worry to set worker. The number of workers will be set automatically according to the batch size.
-flickr8k_train: True                # If True, flickr8k data will be loaded automatically.
+workers: 0                          # Don't worry to set worker. The number of workers will be set automatically according to the batch size.
+flickr8k_train: True                # If True, flickr8k data will be used
 flickr8k_dataset:
     path: data/
 CUSTOM:
